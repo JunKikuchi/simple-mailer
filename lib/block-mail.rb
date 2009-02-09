@@ -1,16 +1,37 @@
-require 'net/smtp'
 require 'time'
 
 class BlockMail
-  def initialize(host, port=25, &block)
-    @smtp = Net::SMTP.start(host, port)
-    block.call(self)
-    @smtp.finish
+  def self.parse(message)
   end
 
-  def message(encoding='us-ascii', &block)
-    msg = BlockMail::Message.new(encoding, &block)
-    @smtp.send_mail *msg.to_smtp
+  class SMTP
+    def initialize(host, port=25, &block)
+      require 'net/smtp'
+
+      @smtp = Net::SMTP.start(host, port)
+      block.call self
+      @smtp.finish
+    end
+
+    def message(encoding='us-ascii', &block)
+      @smtp.send_mail *BlockMail::Message.new(encoding, &block).to_smtp
+    end
+  end
+
+  class POP3
+    def initialize(user, pass, host, port=110, &block)
+      require 'net/pop'
+
+      @pop = Net::POP.start(host, port, user, pass)
+      block.call self
+      @pop.finish
+    end
+
+    def each(&block)
+      @pop.each do |popmail|
+        block.call BlockMail.parse(popmail.pop)
+      end
+    end
   end
 
   class Message
@@ -31,6 +52,8 @@ class BlockMail
       @subject = ''
       @from    = []
       @to      = []
+      @cc      = []
+      @bcc     = []
       @body    = ''
 
       block.call(self) if block_given?
@@ -48,20 +71,28 @@ class BlockMail
       end
     end
 
-    def subject(val)
-      @subject = val
+    def subject(val=nil)
+      val ? @subject = val : @subject
     end
 
-    def from(addr, name=nil)
-      @from = [addr, name]
+    def from(addr=nil, name=nil)
+      addr ? @from = [addr, name] : @from
     end
 
-    def to(addr, name=nil)
-      @to << [addr, name]
+    def to(addr=nil, name=nil)
+      addr ? @to << [addr, name] : @to
     end
 
-    def body(val)
-      @body = val
+    def cc(addr=nil, name=nil)
+      addr ? @cc << [addr, name] : @cc
+    end
+
+    def bcc(addr=nil, name=nil)
+      addr ? @bcc << [addr, name] : @bcc
+    end
+
+    def body(val=nil)
+      val ? @body = val : @body
     end
 
     def to_s
@@ -72,13 +103,20 @@ class BlockMail
         @to.map do |val|
           'To: ' + encode_addr(val[0], val[1])
         end,
+        @cc.map do |val|
+          'Cc: ' + encode_addr(val[0], val[1])
+        end,
         'Date: ' + Time.now.rfc2822,
         'Subject: ' + encode(@subject)
       ].join("\n") + "\n\n" + @body).encode(@encoding)
     end
 
     def to_smtp
-      [to_s.force_encoding('ASCII-8BIT'), @from[0], *@to.map do |v| v[0] end]
+      [
+        to_s.force_encoding('ASCII-8BIT'),
+        @from[0],
+        *((@to + @cc + @bcc).map do |v| v[0] end)
+      ]
     end
   end
 end
