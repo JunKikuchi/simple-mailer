@@ -108,7 +108,7 @@ class BlockMail
         end,
         'Date: ' + Time.now.rfc2822,
         'Subject: ' + encode(@subject)
-      ].join("\n") + "\n\n" + @body).encode(@encoding)
+      ].flatten!.join("\n") + "\n\n" + @body).encode(@encoding)
     end
 
     def to_smtp
