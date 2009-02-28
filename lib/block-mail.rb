@@ -35,14 +35,39 @@ class BlockMail
   end
 
   class Message
-    def self.encode(val, encoding)
-      if val.ascii_only?
-        val
-      else
+    if RUBY_VERSION < '1.9'
+      require 'nkf'
+
+      ENCODING = {
+        'iso-2022-jp' => proc do |val|
+          NKF.nkf '--jis', val
+        end
+      }
+
+      def self.encode(val, encoding)
+        ENCODING[encoding.downcase].call(val)
+      end
+
+      def self.encode_header(val, encoding)
         '=?%s?b?%s?=' % [
           encoding,
-          [val.encode(encoding)].pack('m').split.join
+          [self.encode(val, encoding)].pack('m').split.join
         ]
+      end
+    else
+      def self.encode(val, encoding)
+        val.encode(encoding)
+      end
+
+      def self.encode_header(val, encoding)
+        if val.ascii_only?
+          val
+        else
+          '=?%s?b?%s?=' % [
+            encoding,
+            [val.encode(encoding)].pack('m').split.join
+          ]
+        end
       end
     end
 
@@ -59,13 +84,17 @@ class BlockMail
       block.call(self) if block_given?
     end
 
+    def encode_header(val)
+      self.class.encode_header(val, @encoding)
+    end
+
     def encode(val)
       self.class.encode(val, @encoding)
     end
 
     def encode_addr(addr, name=nil)
       if name
-        '%s <%s>' % [encode(name), addr]
+        '%s <%s>' % [encode_header(name), addr]
       else
         '<%s>' % addr
       end
@@ -107,13 +136,17 @@ class BlockMail
           'Cc: ' + encode_addr(val[0], val[1])
         end,
         'Date: ' + Time.now.rfc2822,
-        'Subject: ' + encode(@subject)
-      ].flatten!.join("\n") + "\n\n" + @body).encode(@encoding)
+        'Subject: ' + encode_header(@subject)
+      ].flatten!.join("\n") + "\n\n" + encode(@body))
     end
 
     def to_smtp
       [
-        to_s.force_encoding('ASCII-8BIT'),
+        if RUBY_VERSION < '1.9'
+          to_s
+        else
+          to_s.force_encoding('ASCII-8BIT')
+        end,
         @from[0],
         *((@to + @cc + @bcc).map do |v| v[0] end)
       ]
