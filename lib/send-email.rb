@@ -1,36 +1,30 @@
 require 'time'
 
-class BlockMail
+class SendEMail
   def self.parse(message)
   end
 
   class SMTP
-    def initialize(host, port=25, &block)
+    def initialize(params={}, &block)
       require 'net/smtp'
+      @params = {
+        :host => 'localhost',
+        :port => 25
+      }.merge(params)
 
-      @smtp = Net::SMTP.start(host, port)
-      block.call self
+      @smtp = Net::SMTP.start(@params[:host], @params[:port].to_i)
+      instance_eval(&block)
       @smtp.finish
     end
 
-    def message(encoding='us-ascii', &block)
-      @smtp.send_mail *BlockMail::Message.new(encoding, &block).to_smtp
-    end
-  end
+    def message(params={}, &block)
+      @params = {
+        :encoding => 'us-ascii'
+      }.merge(params)
 
-  class POP3
-    def initialize(user, pass, host, port=110, &block)
-      require 'net/pop'
-
-      @pop = Net::POP.start(host, port, user, pass)
-      block.call self
-      @pop.finish
-    end
-
-    def each(&block)
-      @pop.each do |popmail|
-        block.call BlockMail.parse(popmail.pop)
-      end
+      @smtp.send_mail(
+        *Message.new(@params[:encoding], &block).to_smtp
+      )
     end
   end
 
@@ -71,6 +65,8 @@ class BlockMail
       end
     end
 
+    attr_accessor :subject, :body
+
     def initialize(encoding, &block)
       @encoding = encoding
 
@@ -81,7 +77,7 @@ class BlockMail
       @bcc     = []
       @body    = ''
 
-      block.call(self) if block_given?
+      instance_eval(&block)
     end
 
     def encode_header(val)
@@ -100,43 +96,35 @@ class BlockMail
       end
     end
 
-    def subject(val=nil)
-      val ? @subject = val : @subject
+    def from(addr, name=nil)
+      @from = [addr, name]
     end
 
-    def from(addr=nil, name=nil)
-      addr ? @from = [addr, name] : @from
+    def to(addr, name=nil)
+      @to << [addr, name]
     end
 
-    def to(addr=nil, name=nil)
-      addr ? @to << [addr, name] : @to
+    def cc(addr, name=nil)
+      @cc << [addr, name]
     end
 
-    def cc(addr=nil, name=nil)
-      addr ? @cc << [addr, name] : @cc
-    end
-
-    def bcc(addr=nil, name=nil)
-      addr ? @bcc << [addr, name] : @bcc
-    end
-
-    def body(val=nil)
-      val ? @body = val : @body
+    def bcc(addr, name=nil)
+      @bcc << [addr, name]
     end
 
     def to_s
       ([
         'MIME-Version: 1.0',
         'Content-Type: text/plain; charset=' + @encoding,
-        'From: ' + encode_addr(@from[0], @from[1]),
+        'From: ' << encode_addr(@from[0], @from[1]),
         @to.map do |val|
-          'To: ' + encode_addr(val[0], val[1])
+          'To: ' << encode_addr(val[0], val[1])
         end,
         @cc.map do |val|
-          'Cc: ' + encode_addr(val[0], val[1])
+          'Cc: ' << encode_addr(val[0], val[1])
         end,
-        'Date: ' + Time.now.rfc2822,
-        'Subject: ' + encode_header(@subject)
+        'Date: ' << Time.now.rfc2822,
+        'Subject: ' << encode_header(@subject)
       ].flatten!.join("\n") + "\n\n" + encode(@body))
     end
 
