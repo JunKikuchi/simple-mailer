@@ -1,1 +1,21 @@
 = block-mail
+
+  require 'rubygems'
+  require 'lib/send-email'
+  
+  SendEMail::SMTP.new(:host => 'localhost', :port => 25) do
+    message(:encoding => 'iso-2022-jp') do
+      from 'hoge@example.com'
+      to 'foo@example.com', 'Foo'
+      to 'bar@example.com'
+      subject 'Hello'
+      body <<END
+  Hi,
+  
+  How are you doing?
+  
+  --
+  hoge
+  END
+    end
+  end
