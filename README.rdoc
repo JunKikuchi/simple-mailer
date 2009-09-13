@@ -1,9 +1,9 @@
-= block-mail
+= simple-mailer
 
   require 'rubygems'
-  require 'lib/send-email'
+  require 'lib/simple-mailer'
   
-  SendEMail::SMTP.new(:host => 'localhost', :port => 25) do
+  SimpleMailer::SMTP.new(:host => 'localhost', :port => 25) do
     message(:encoding => 'iso-2022-jp') do
       from 'hoge@example.com'
       to 'foo@example.com', 'Foo'

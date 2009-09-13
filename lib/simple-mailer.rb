@@ -1,6 +1,6 @@
 require 'time'
 
-class SendEMail
+class SimpleMailer
   def self.parse(message)
   end
 
@@ -65,16 +65,14 @@ class SendEMail
       end
     end
 
-    attr_accessor :subject, :body
-
     def initialize(encoding, &block)
       @encoding = encoding
 
-      @subject = ''
       @from    = []
       @to      = []
       @cc      = []
       @bcc     = []
+      @subject = ''
       @body    = ''
 
       instance_eval(&block)
@@ -110,6 +108,14 @@ class SendEMail
 
     def bcc(addr, name=nil)
       @bcc << [addr, name]
+    end
+
+    def subject(subject)
+      @subject = subject
+    end
+
+    def body(body)
+      @body = body
     end
 
     def to_s

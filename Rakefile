@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'spec/rake/spectask'
 
-NAME = 'send-email'
+NAME = 'simple-mailer'
 
 begin
   require 'jeweler'
@@ -12,7 +12,7 @@ begin
     s.description = NAME
     s.author = "Jun Kikuchi"
     s.email = "kikuchi@bonnou.com"
-    s.homepage = "http://github.com/JunKikuchi/send-email"
+    s.homepage = "http://github.com/JunKikuchi/simple-mailer"
     s.files = %w(
       COPYING CHANGELOG README.rdoc Rakefile VERSION
     ) + Dir.glob("{bin,doc,spec,lib}/**/*")
