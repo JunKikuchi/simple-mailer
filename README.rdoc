@@ -2,14 +2,8 @@
 
   require 'rubygems'
   require 'lib/simple-mailer'
-  
-  SimpleMailer::SMTP.new(:host => 'localhost', :port => 25) do
-    message(:encoding => 'iso-2022-jp') do
-      from 'hoge@example.com'
-      to 'foo@example.com', 'Foo'
-      to 'bar@example.com'
-      subject 'Hello'
-      body <<END
+
+  body =<<END
   Hi,
   
   How are you doing?
@@ -17,5 +11,13 @@
   --
   hoge
   END
+  
+  SimpleMailer::SMTP.new(:host => 'localhost', :port => 25) do |smtp|
+    smtp.message(:encoding => 'iso-2022-jp') do |msg|
+      msg.from 'hoge@example.com'
+      msg.to 'foo@example.com', 'Foo'
+      msg.to 'bar@example.com'
+      msg.subject 'Hello'
+      msg.body body_en
     end
   end

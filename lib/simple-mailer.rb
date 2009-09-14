@@ -13,7 +13,7 @@ class SimpleMailer
       }.merge(params)
 
       @smtp = Net::SMTP.start(@params[:host], @params[:port].to_i)
-      instance_eval(&block)
+      block.call(self)
       @smtp.finish
     end
 
@@ -75,7 +75,7 @@ class SimpleMailer
       @subject = ''
       @body    = ''
 
-      instance_eval(&block)
+      block.call(self)
     end
 
     def encode_header(val)
