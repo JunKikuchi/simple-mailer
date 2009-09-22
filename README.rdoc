@@ -18,6 +18,6 @@
       msg.to 'foo@example.com', 'Foo'
       msg.to 'bar@example.com'
       msg.subject 'Hello'
-      msg.body body_en
+      msg.body body
     end
   end
